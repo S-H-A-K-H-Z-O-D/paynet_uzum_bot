@@ -76,6 +76,8 @@ class GetData:
         chat_type = message.get("chat", {}).get("type", "")
         user = message.get("from", {})
         first_name = user.get("username", "")
+
+        print(f"Received a message from chat type: {chat_type}, username: {first_name}") 
         
         # if chat_type in ["group", "supergroup"] and first_name in ["paynet_transaction_bot", "ApelsinAssistantbot"]:
         #     if first_name == "paynet_transaction_bot":
