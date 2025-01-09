@@ -84,9 +84,9 @@ class GetData:
         #         return Uzum(message.get("text", "")).uzum_data()
         # return None
 
-        # if chat_type in ["group", "supergroup"]:
+        if chat_type in ["group", "supergroup", "channel"]:
             # if first_name == "ShakhzodMatrasulov":
-        return Paynet(message.get("text", "")).paynet_data()
+                return Paynet(message.get("text", "")).paynet_data()
             # elif first_name == "jhbwefkcjsb_bot":
                 return Uzum(message.get("text", "")).uzum_data()
         return None
