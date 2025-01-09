@@ -77,9 +77,16 @@ class GetData:
         user = message.get("from", {})
         first_name = user.get("username", "")
         
-        if chat_type in ["group", "supergroup"] and first_name in ["paynet_transaction_bot", "ApelsinAssistantbot"]:
-            if first_name == "paynet_transaction_bot":
+        # if chat_type in ["group", "supergroup"] and first_name in ["paynet_transaction_bot", "ApelsinAssistantbot"]:
+        #     if first_name == "paynet_transaction_bot":
+        #         return Paynet(message.get("text", "")).paynet_data()
+        #     elif first_name == "ApelsinAssistantbot":
+        #         return Uzum(message.get("text", "")).uzum_data()
+        # return None
+
+        if chat_type in ["group", "supergroup"] and first_name in ["ShakhzodMatrasulov", "Shakhzod_Maab"]:
+            if first_name == "ShakhzodMatrasulov":
                 return Paynet(message.get("text", "")).paynet_data()
-            elif first_name == "ApelsinAssistantbot":
+            elif first_name == "Shakhzod_Maab":
                 return Uzum(message.get("text", "")).uzum_data()
         return None
