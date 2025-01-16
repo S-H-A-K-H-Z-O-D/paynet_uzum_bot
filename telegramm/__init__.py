@@ -127,6 +127,8 @@ class GetData:
         return data
     
 from sheet import Sheet
+import re
+import json
 
 
 class ReaderBot:
@@ -150,7 +152,7 @@ class ReaderBot:
     def process_message(self, message):
         """Process incoming messages and extract payment data."""
         # Check if the message is from the informer bot (replace with actual username)
-        if message.get("from", {}).get("username") == "InformerBotUsername":  # Replace with actual informer bot username
+        if message.get("from", {}).get("username") == "NURBEKOTAMURODOV":  # Replace with actual informer bot username
             text = message.get("text", "")
             if "payment" in text.lower():  # Adjust this check as per the format of the payment message
                 payment_data = self.extract_payment_data(text)
@@ -160,11 +162,69 @@ class ReaderBot:
                     print("Payment data written to Google Sheets.")
 
     def extract_payment_data(self, text):
-        """Extract payment data from the message."""
-        data = {}
-        if "amount" in text:
-            data["payment"] = "1000"  # Replace with actual extracted value
-        return data
+        try:
+            # Check for the presence of specific keywords to determine the format
+            if "💰Сумма:" in text:  # First notification format
+                # Match the payment amount
+                amount_match = re.search(r"💰Сумма:\s*(\d+)", text)
+
+                # Match the JSON-like user data
+                user_data_match = re.search(r"🏷Данные пользователя:\s*({.*})", text)
+
+                # Parse the user data JSON
+                user_data = json.loads(user_data_match.group(1)) if user_data_match else {}
+
+                # Extract data from user_data
+                full_name = user_data.get("fio", "")
+                contract_number = user_data.get("Shartnoma raqami", "")
+                pinfl = user_data.get("ПИНФЛ", "")
+
+                # Split full_name into first and last name
+                name_parts = full_name.split()
+                first_name = name_parts[0] if len(name_parts) > 0 else ""
+                last_name = name_parts[-1] if len(name_parts) > 1 else ""
+
+                return {
+                    "payment": amount_match.group(1) if amount_match else "",
+                    "contract_number": contract_number,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "pnfl": pinfl,
+                }
+
+            elif "Сумма транзакции:" in text:  # Second notification format
+                # Match transaction amount
+                amount_match = re.search(r"Сумма транзакции:\s*([\d\s]+)\s*сум", text)
+
+                # Match client information
+                client_match = re.search(r"Клиент:\s*([^\-]+)-(\d+)-(\d+)", text)
+
+                # Extract data from client_match
+                if client_match:
+                    full_name = client_match.group(1).strip()
+                    contract_number = client_match.group(2).strip()
+                    pnfl = client_match.group(3).strip()
+
+                    # Split full_name into first and last name
+                    name_parts = full_name.split()
+                    first_name = name_parts[0] if len(name_parts) > 0 else ""
+                    last_name = name_parts[-1] if len(name_parts) > 1 else ""
+
+                    return {
+                        "payment": amount_match.group(1).replace(" ", "") if amount_match else "",
+                        "contract_number": contract_number,
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "pnfl": pnfl,
+                    }
+
+            else:
+                print("Unrecognized notification format.")
+                return None
+
+        except Exception as e:
+            print("Error parsing payment data:", e)
+            return None
 
     def run(self):
         """Main loop to fetch and process updates."""

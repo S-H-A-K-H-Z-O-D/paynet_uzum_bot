@@ -85,4 +85,3 @@ class Sheet:
         # Append the row to the sheet
         sheet.append_row(row)
         print("Data written successfully!")
-
