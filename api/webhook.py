@@ -26,7 +26,7 @@
 from http.server import BaseHTTPRequestHandler
 import json
 from sheet import Sheet
-from telegram import GetData
+from telegramm import GetData
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
