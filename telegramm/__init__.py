@@ -72,7 +72,7 @@ load_dotenv(dotenv_path=".env")
 class GetData:
     def __init__(self):
         # Load the bot token from the .env file
-        self.BOT_TOKEN = os.getenv("BOT_TOKEN")
+        self.BOT_TOKEN = "7340543076:AAFjPDt1KnA0HpC5tILP9SnmuJie7s-LC1U"
         if not self.BOT_TOKEN:
             raise ValueError("BOT_TOKEN is not set in the .env file.")
         

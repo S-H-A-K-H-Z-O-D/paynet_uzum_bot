@@ -6,8 +6,8 @@ def main():
     # Load environment variables from .env file
     load_dotenv(dotenv_path=".env")
     
-    bot_token = os.getenv("BOT_TOKEN")
-    group_chat_id = os.getenv("GROUP_CHAT_ID")
+    bot_token = "7996386097:AAF_L8_MUsQT11ixUZT0Z2NW8-3FrQu7hB0"
+    group_chat_id = "-1002253117682"
 
     if not bot_token or not group_chat_id:
         print("BOT_TOKEN or GROUP_CHAT_ID is missing in the .env file.")
