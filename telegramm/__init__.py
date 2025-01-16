@@ -161,66 +161,72 @@ class ReaderBot:
                     Sheet().write_to_google_sheet(payment_data)
                     print("Payment data written to Google Sheets.")
 
-    def extract_payment_data(self, text):
+    def extract_payment_data(self):
         try:
-            # Check for the presence of specific keywords to determine the format
-            if "💰Сумма:" in text:  # First notification format
-                # Match the payment amount
-                amount_match = re.search(r"💰Сумма:\s*(\d+)", text)
+            data = {}
 
-                # Match the JSON-like user data
-                user_data_match = re.search(r"🏷Данные пользователя:\s*({.*})", text)
+            # Check for the presence of "💰Сумма:" for first notification format
+            if "💰Сумма:" in self.text:
+                # Extract payment amount
+                amount_match = re.search(r"💰Сумма:\s*(\d+)", self.text)
 
-                # Parse the user data JSON
-                user_data = json.loads(user_data_match.group(1)) if user_data_match else {}
+                # Extract user data (fio, contract number, pnfl)
+                user_data_match = re.search(r"🏷Данные пользователя:\s*({.*})", self.text)
+                if user_data_match:
+                    user_data = json.loads(user_data_match.group(1))  # Parse JSON-like user data
 
-                # Extract data from user_data
-                full_name = user_data.get("fio", "")
-                contract_number = user_data.get("Shartnoma raqami", "")
-                pinfl = user_data.get("ПИНФЛ", "")
+                    # Extract full name, contract number, and pnfl
+                    full_name = user_data.get("fio", "")
+                    contract_number = user_data.get("Shartnoma raqami", "")
+                    pinfl = user_data.get("ПИНФЛ", "")
 
-                # Split full_name into first and last name
-                name_parts = full_name.split()
-                first_name = name_parts[0] if len(name_parts) > 0 else ""
-                last_name = name_parts[-1] if len(name_parts) > 1 else ""
+                    # Split full name into first name, last name, and middle name
+                    name_parts = full_name.split()
+                    first_name = name_parts[0] if len(name_parts) > 0 else ""
+                    last_name = name_parts[1] if len(name_parts) > 1 else ""
+                    middle_name = " ".join(name_parts[2:]).strip() if len(name_parts) > 2 else ""
 
-                return {
-                    "payment": amount_match.group(1) if amount_match else "",
-                    "contract_number": contract_number,
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "pnfl": pinfl,
-                }
+                    # Set data in a dictionary
+                    data["payment"] = amount_match.group(1) if amount_match else ""
+                    data["contract_number"] = contract_number
+                    data["first_name"] = first_name
+                    data["last_name"] = last_name
+                    data["middle_name"] = middle_name
+                    data["pnfl"] = pinfl
+                    data["payment_app"] = "Paynet"
 
-            elif "Сумма транзакции:" in text:  # Second notification format
-                # Match transaction amount
-                amount_match = re.search(r"Сумма транзакции:\s*([\d\s]+)\s*сум", text)
+            # Check for the second notification format with "Сумма транзакции:"
+            elif "Сумма транзакции:" in self.text:
+                # Extract transaction amount
+                amount_match = re.search(r"Сумма транзакции:\s*([\d\s]+)\s*сум", self.text)
 
-                # Match client information
-                client_match = re.search(r"Клиент:\s*([^\-]+)-(\d+)-(\d+)", text)
-
-                # Extract data from client_match
+                # Extract client information (full name, contract number, pnfl)
+                client_match = re.search(r"Клиент:\s*([^\-]+)-(\d+)-(\d+)", self.text)
                 if client_match:
                     full_name = client_match.group(1).strip()
                     contract_number = client_match.group(2).strip()
                     pnfl = client_match.group(3).strip()
 
-                    # Split full_name into first and last name
+                    # Split full name into first name and last name
                     name_parts = full_name.split()
                     first_name = name_parts[0] if len(name_parts) > 0 else ""
-                    last_name = name_parts[-1] if len(name_parts) > 1 else ""
+                    last_name = name_parts[1] if len(name_parts) > 1 else ""
+                    middle_name = " ".join(name_parts[2:]).strip() if len(name_parts) > 2 else ""
 
-                    return {
-                        "payment": amount_match.group(1).replace(" ", "") if amount_match else "",
-                        "contract_number": contract_number,
-                        "first_name": first_name,
-                        "last_name": last_name,
-                        "pnfl": pnfl,
-                    }
+                    # Set data in a dictionary
+                    data["payment"] = amount_match.group(1).replace(" ", "") if amount_match else ""
+                    data["contract_number"] = contract_number
+                    data["first_name"] = first_name
+                    data["last_name"] = last_name
+                    data["middle_name"] = middle_name
+                    data["pnfl"] = pnfl
+                    data["payment_app"] = "Paynet"
 
             else:
                 print("Unrecognized notification format.")
                 return None
+
+            return data
 
         except Exception as e:
             print("Error parsing payment data:", e)
