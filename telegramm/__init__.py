@@ -72,7 +72,7 @@ load_dotenv(dotenv_path=".env")
 class GetData:
     def __init__(self):
         # Load the bot token from the .env file
-        self.BOT_TOKEN = "7340543076:AAFjPDt1KnA0HpC5tILP9SnmuJie7s-LC1U"
+        self.BOT_TOKEN = "7527651044:AAEWDPcMJRaKZ8QhSdJj0uhQ5VJw1HSgNV0"
         if not self.BOT_TOKEN:
             raise ValueError("BOT_TOKEN is not set in the .env file.")
         
@@ -110,13 +110,13 @@ class GetData:
                     if chat_type in ["group", "supergroup"]:
                         first_name = user.get("username", "")
                         print(first_name)
-                        if first_name == "InformerBotUsername":  # Replace with the actual informer bot's username
+                        if first_name == "ntification_bot_bot":  # Replace with the actual informer bot's username
                             return self.extract_payment_data(text)
 
-                        elif first_name == "NURBEKOTAMURODOV":
+                        elif first_name == "ntification_bot_bot":
                             return Paynet(text).paynet_data()
 
-                        elif first_name == "NURBEKOTAMURODOV":
+                        elif first_name == "ntification_bot_bot":
                             return Uzum(text).uzum_data()
 
     def extract_payment_data(self, text):
@@ -152,7 +152,7 @@ class ReaderBot:
     def process_message(self, message):
         """Process incoming messages and extract payment data."""
         # Check if the message is from the informer bot (replace with actual username)
-        if message.get("from", {}).get("username") == "NURBEKOTAMURODOV":  # Replace with actual informer bot username
+        if message.get("from", {}).get("username") == "ntification_bot_bot":  # Replace with actual informer bot username
             text = message.get("text", "")
             if "payment" in text.lower():  # Adjust this check as per the format of the payment message
                 payment_data = self.extract_payment_data(text)
