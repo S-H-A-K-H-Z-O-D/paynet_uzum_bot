@@ -131,6 +131,12 @@ import re
 import json
 
 
+import os
+import requests
+from sheet import Sheet
+import re
+import json
+
 class ReaderBot:
     def __init__(self, bot_token, group_chat_id):
         self.bot_token = bot_token
@@ -151,27 +157,30 @@ class ReaderBot:
 
     def process_message(self, message):
         """Process incoming messages and extract payment data."""
-        # Check if the message is from the informer bot (replace with actual username)
-        if message.get("from", {}).get("username") == "ntification_bot_bot":  # Replace with actual informer bot username
-            text = message.get("text", "")
-            if "payment" in text.lower():  # Adjust this check as per the format of the payment message
-                payment_data = self.extract_payment_data(text)
-                if payment_data:
+        if message: #Check if there is a message
+           text = message.get("text", "")
+           print(f"Message Text Received: {text}")
+           print(f"From: {message.get('from')}")
+           print(f"Is 'payment' or 'сумма' in text? {('payment' in text.lower() or 'сумма' in text.lower())}")
+           if "payment" in text.lower() or "сумма" in text.lower(): 
+               payment_data = self.extract_payment_data(text)
+               print(f"Payment data returned: {payment_data}")
+               if payment_data:
                     # Write the extracted data to Google Sheets
                     Sheet().write_to_google_sheet(payment_data)
                     print("Payment data written to Google Sheets.")
 
-    def extract_payment_data(self):
+    def extract_payment_data(self, text):
         try:
             data = {}
 
             # Check for the presence of "💰Сумма:" for first notification format
-            if "💰Сумма:" in self.text:
+            if "💰Сумма:" in text:
                 # Extract payment amount
-                amount_match = re.search(r"💰Сумма:\s*(\d+)", self.text)
+                amount_match = re.search(r"💰Сумма:\s*(\d+)", text)
 
                 # Extract user data (fio, contract number, pnfl)
-                user_data_match = re.search(r"🏷Данные пользователя:\s*({.*})", self.text)
+                user_data_match = re.search(r"🏷Данные пользователя:\s*({.*})", text)
                 if user_data_match:
                     user_data = json.loads(user_data_match.group(1))  # Parse JSON-like user data
 
@@ -196,12 +205,12 @@ class ReaderBot:
                     data["payment_app"] = "Paynet"
 
             # Check for the second notification format with "Сумма транзакции:"
-            elif "Сумма транзакции:" in self.text:
+            elif "Сумма транзакции:" in text:
                 # Extract transaction amount
-                amount_match = re.search(r"Сумма транзакции:\s*([\d\s]+)\s*сум", self.text)
+                amount_match = re.search(r"Сумма транзакции:\s*([\d\s]+)\s*сум", text)
 
                 # Extract client information (full name, contract number, pnfl)
-                client_match = re.search(r"Клиент:\s*([^\-]+)-(\d+)-(\d+)", self.text)
+                client_match = re.search(r"Клиент:\s*([^\-]+)-(\d+)-(\d+)", text)
                 if client_match:
                     full_name = client_match.group(1).strip()
                     contract_number = client_match.group(2).strip()
@@ -239,7 +248,12 @@ class ReaderBot:
             updates = self.get_updates()
             if updates:
                 for update in updates["result"]:
+                    #print(f"Offset: {self.offset}")
+                    #print(f"Full Update: {update}")
                     message = update.get("message", {})
-                    self.process_message(message)
-                    # Update the offset to avoid reprocessing the same message
-                    self.offset = update["update_id"] + 1
+                    if message:
+                        text = message.get("text", "")
+                        self.text = text
+                        self.process_message(message)
+                        # Update the offset to avoid reprocessing the same message
+                        self.offset = update["update_id"] + 1
