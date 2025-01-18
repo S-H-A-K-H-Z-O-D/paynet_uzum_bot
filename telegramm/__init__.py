@@ -68,6 +68,9 @@ from google.oauth2.service_account import Credentials
 
 from dotenv import load_dotenv
 from sheet import Sheet
+from .paynet import Paynet
+from .uzum import Uzum
+
 
 load_dotenv(dotenv_path=".env")
 
@@ -100,90 +103,15 @@ class ReaderBot:
     async def format_message_to_normal_dict(self, text):
          """Converts incoming string into a dict compatible with payment parser"""
 
-         payment_data = None  # Start with none because it could not found anything
-         if "payment" in text.lower() or "сумма" in text.lower(): #Same filtering as in the bot implementation
-            payment_data = self.extract_payment_data(text)
-         
-         return payment_data #Either a formatted object or None
+         data = None
+         if "Клиент" in text and "Сумма транзакции:" in text:
+            data = Paynet(text).paynet_data()
 
-    def extract_payment_data(self, text):
-       try:
-            data = {}
-
-            # Check for the presence of "💰Сумма:" for first notification format
-            if "💰Сумма:" in text:
-                # Extract payment amount
-                amount_match = re.search(r"💰Сумма:\s*(\d+)", text)
-                  # Extract the date for first format
-                date_match = re.search(r"⏱️Время:\s*([\d\.:\s]+)", text)
-
-                # Extract user data (fio, contract number, pnfl)
-                user_data_match = re.search(r"🏷Данные пользователя:\s*({.*})", text)
-                if user_data_match:
-                    user_data = json.loads(user_data_match.group(1))  # Parse JSON-like user data
-
-                    # Extract full name, contract number, and pnfl
-                    full_name = user_data.get("fio", "")
-                    contract_number = user_data.get("Shartnoma raqami", "")
-                    pinfl = user_data.get("ПИНФЛ", "")
-
-                    # Split full name into first name, last name, and middle name
-                    name_parts = full_name.split()
-                    first_name = name_parts[0] if len(name_parts) > 0 else ""
-                    last_name = name_parts[1] if len(name_parts) > 1 else ""
-                    middle_name = " ".join(name_parts[2:]).strip() if len(name_parts) > 2 else ""
-
-                    # Set data in a dictionary
-                    data["payment"] = amount_match.group(1) if amount_match else ""
-                    data["contract_number"] = contract_number
-                    data["first_name"] = first_name
-                    data["last_name"] = last_name
-                    data["middle_name"] = middle_name
-                    data["pnfl"] = pinfl
-                    data["payment_app"] = "Paynet"
-                    data["Дата"] = date_match.group(1).strip() if date_match else ""
+         elif "✅Статус:" in text:
+            data = Uzum(text).uzum_data()
 
 
-            # Check for the second notification format with "Сумма транзакции:"
-            elif "Сумма транзакции:" in text:
-                # Extract transaction amount
-                amount_match = re.search(r"Сумма транзакции:\s*([\d\s]+)\s*сум", text)
-                 # Extract the date for second format
-                date_match = re.search(r"Дата:\s*([\d\.:\s]+)", text)
-                # Extract client information (full name, contract number, pnfl)
-                client_match = re.search(r"Клиент:\s*([^\-]+)-(\d+)-(\d+)", text)
-                if client_match:
-                    full_name = client_match.group(1).strip()
-                    contract_number = client_match.group(2).strip()
-                    pnfl = client_match.group(3).strip()
-
-                    # Split full name into first name and last name
-                    name_parts = full_name.split()
-                    first_name = name_parts[0] if len(name_parts) > 0 else ""
-                    last_name = name_parts[1] if len(name_parts) > 1 else ""
-                    middle_name = " ".join(name_parts[2:]).strip() if len(name_parts) > 2 else ""
-
-                    # Set data in a dictionary
-                    data["payment"] = amount_match.group(1).replace(" ", "") if amount_match else ""
-                    data["contract_number"] = contract_number
-                    data["first_name"] = first_name
-                    data["last_name"] = last_name
-                    data["middle_name"] = middle_name
-                    data["pnfl"] = pnfl
-                    data["payment_app"] = "Paynet"
-                    data["Дата"] = date_match.group(1).strip() if date_match else ""
-
-
-
-            else:
-                print("Unrecognized notification format.")
-                return None
-
-            return data
-
-       except Exception as e:
-            print("Error parsing payment data:", e)
-            return None
+         return data #Either a formatted object or None
 
 
     async def handle_message(self, event):
