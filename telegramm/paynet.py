@@ -40,3 +40,16 @@ class Paynet:
                 print(f"Error parsing 'Клиент' field: {e}")
 
         return data
+    
+message = """
+Провайдер: MAAB INNOVATION
+Сервис: Оплата
+№ транзакции: 18019060170
+Дата: 18.01.2025 13:42:24
+Сумма транзакции: 972500 сум
+Клиент: Shamuratov Diyorbek-287-51902067250010
+"""
+
+paynet = Paynet(message)
+data = paynet.paynet_data()
+print(data)
