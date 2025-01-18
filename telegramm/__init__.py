@@ -61,123 +61,61 @@
                         
 
 import os
-import requests
-from dotenv import load_dotenv
-from .paynet import Paynet
-from .uzum import Uzum
+import json
+import re
+from telethon import TelegramClient, events
+from google.oauth2.service_account import Credentials
 
-# Load environment variables from .env file
+from dotenv import load_dotenv
+from sheet import Sheet
+
 load_dotenv(dotenv_path=".env")
 
-class GetData:
-    def __init__(self):
-        # Load the bot token from the .env file
-        self.BOT_TOKEN = "7527651044:AAEWDPcMJRaKZ8QhSdJj0uhQ5VJw1HSgNV0"
-        if not self.BOT_TOKEN:
-            raise ValueError("BOT_TOKEN is not set in the .env file.")
-        
-        self.base_url = f"https://api.telegram.org/bot{self.BOT_TOKEN}"
-        self.offset = None  # Offset to avoid receiving duplicate messages
-        self.data = None  # Store the processed data
-
-    def get_updates(self):
-        """Fetch new updates (messages) from the bot."""
-        url = f"{self.base_url}/getUpdates"
-        params = {"offset": self.offset, "timeout": 10}
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            print(f"Error: {response.status_code}")
-            return None
-
-    def process_updates(self, updates):
-        """Process updates and filter messages in the group by the specified sender."""
-        if "result" in updates:
-            for update in updates["result"]:
-                # Update the offset to avoid processing the same message again
-                self.offset = update["update_id"] + 1
-
-                # Extract message data
-                if "message" in update:
-                    print(update)
-                    message = update["message"]
-                    chat_type = message.get("chat", {}).get("type", "")
-                    user = message.get("from", {})
-                    text = message.get("text", "")
-
-                    # Process messages only from groups or supergroups
-                    if chat_type in ["group", "supergroup"]:
-                        first_name = user.get("username", "")
-                        print(first_name)
-                        if first_name == "ntification_bot_bot":  # Replace with the actual informer bot's username
-                            return self.extract_payment_data(text)
-
-                        elif first_name == "ntification_bot_bot":
-                            return Paynet(text).paynet_data()
-
-                        elif first_name == "ntification_bot_bot":
-                            return Uzum(text).uzum_data()
-
-    def extract_payment_data(self, text):
-        """Parse and extract payment data."""
-        data = {}
-        if "payment" in text.lower():  # Replace with the actual logic to extract payment data
-            data["payment"] = "1000"  # Replace with actual extracted payment value
-        return data
-    
-from sheet import Sheet
-import re
-import json
-
-
-import os
-import requests
-from sheet import Sheet
-import re
-import json
 
 class ReaderBot:
-    def __init__(self, bot_token, group_chat_id):
-        self.bot_token = bot_token
-        self.group_chat_id = group_chat_id
-        self.base_url = f"https://api.telegram.org/bot{self.bot_token}"
-        self.offset = None  # Offset to avoid receiving duplicate messages
+    def __init__(self):
+         self.api_id = os.getenv("API_ID")
+         self.api_hash = os.getenv("API_HASH")
+         self.session = "user"
+         self.group_chat_id = os.getenv("GROUP_CHAT_ID")  # Get the group chat ID from .env
 
-    def get_updates(self):
-        """Fetch new updates (messages) from the bot."""
-        url = f"{self.base_url}/getUpdates"
-        params = {"offset": self.offset, "timeout": 10}
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            print(f"Error: {response.status_code}")
-            return None
+         if not self.api_id or not self.api_hash or not self.group_chat_id:
+            raise ValueError(
+                "API_ID, API_HASH or GROUP_CHAT_ID must be defined in .env"
+            )
 
-    def process_message(self, message):
-        """Process incoming messages and extract payment data."""
-        if message: #Check if there is a message
-           text = message.get("text", "")
-           print(f"Message Text Received: {text}")
-           print(f"From: {message.get('from')}")
-           print(f"Is 'payment' or 'сумма' in text? {('payment' in text.lower() or 'сумма' in text.lower())}")
-           if "payment" in text.lower() or "сумма" in text.lower(): 
-               payment_data = self.extract_payment_data(text)
-               print(f"Payment data returned: {payment_data}")
-               if payment_data:
-                    # Write the extracted data to Google Sheets
-                    Sheet().write_to_google_sheet(payment_data)
-                    print("Payment data written to Google Sheets.")
+         self.client = TelegramClient(self.session, int(self.api_id), self.api_hash)
+
+         self.informer_bot_id = None
+         informer_bot_id_str = os.getenv("INFORMER_BOT_ID")
+
+         if informer_bot_id_str is None:
+            print("INFORMER_BOT_ID not found")
+
+         try:
+           self.informer_bot_id = int(informer_bot_id_str) #Cast the botid before even code started, to remove that issue
+         except ValueError as e:
+           print(f"Failed to convert INFORMER_BOT_ID to int: {e}")
+
+    async def format_message_to_normal_dict(self, text):
+         """Converts incoming string into a dict compatible with payment parser"""
+
+         payment_data = None  # Start with none because it could not found anything
+         if "payment" in text.lower() or "сумма" in text.lower(): #Same filtering as in the bot implementation
+            payment_data = self.extract_payment_data(text)
+         
+         return payment_data #Either a formatted object or None
 
     def extract_payment_data(self, text):
-        try:
+       try:
             data = {}
 
             # Check for the presence of "💰Сумма:" for first notification format
             if "💰Сумма:" in text:
                 # Extract payment amount
                 amount_match = re.search(r"💰Сумма:\s*(\d+)", text)
+                  # Extract the date for first format
+                date_match = re.search(r"⏱️Время:\s*([\d\.:\s]+)", text)
 
                 # Extract user data (fio, contract number, pnfl)
                 user_data_match = re.search(r"🏷Данные пользователя:\s*({.*})", text)
@@ -203,12 +141,15 @@ class ReaderBot:
                     data["middle_name"] = middle_name
                     data["pnfl"] = pinfl
                     data["payment_app"] = "Paynet"
+                    data["Дата"] = date_match.group(1).strip() if date_match else ""
+
 
             # Check for the second notification format with "Сумма транзакции:"
             elif "Сумма транзакции:" in text:
                 # Extract transaction amount
                 amount_match = re.search(r"Сумма транзакции:\s*([\d\s]+)\s*сум", text)
-
+                 # Extract the date for second format
+                date_match = re.search(r"Дата:\s*([\d\.:\s]+)", text)
                 # Extract client information (full name, contract number, pnfl)
                 client_match = re.search(r"Клиент:\s*([^\-]+)-(\d+)-(\d+)", text)
                 if client_match:
@@ -230,6 +171,9 @@ class ReaderBot:
                     data["middle_name"] = middle_name
                     data["pnfl"] = pnfl
                     data["payment_app"] = "Paynet"
+                    data["Дата"] = date_match.group(1).strip() if date_match else ""
+
+
 
             else:
                 print("Unrecognized notification format.")
@@ -237,23 +181,40 @@ class ReaderBot:
 
             return data
 
-        except Exception as e:
+       except Exception as e:
             print("Error parsing payment data:", e)
             return None
 
-    def run(self):
-        """Main loop to fetch and process updates."""
-        print("Reader bot is running...")
-        while True:
-            updates = self.get_updates()
-            if updates:
-                for update in updates["result"]:
-                    #print(f"Offset: {self.offset}")
-                    #print(f"Full Update: {update}")
-                    message = update.get("message", {})
-                    if message:
-                        text = message.get("text", "")
-                        self.text = text
-                        self.process_message(message)
-                        # Update the offset to avoid reprocessing the same message
-                        self.offset = update["update_id"] + 1
+
+    async def handle_message(self, event):
+            """ Process message and write to google sheets """
+            message = event.message
+            
+            if  message.from_id and message.from_id.user_id == self.informer_bot_id:
+
+                 formatted_payment_data = await self.format_message_to_normal_dict(message.message)
+
+                 if formatted_payment_data is not None:
+
+                    print(f"Processing message from user: {message.from_id.user_id}, Data: {formatted_payment_data}")
+                    Sheet().write_to_google_sheet(formatted_payment_data)
+                    print("Payment data written to Google Sheets.")
+    async def run(self):
+        """ Fetch messages and process payment notifications """
+        try:
+          await self.client.start() #Client starting, async part
+          print(f"Listening for new messages in group: {self.group_chat_id}")
+
+          #Add an event handler here instead, that will be looping on an incoming user event message from given specific telegram ID:
+          @self.client.on(events.NewMessage(chats=[int(self.group_chat_id)]))
+          async def handler(event):
+                await self.handle_message(event)
+            
+          await self.client.run_until_disconnected() #The client now *always runs until you disconnect*. All logic moves here!
+
+        except Exception as e:
+           print(f"An error occurred: {e}")
+        finally:
+          if self.client and self.client.is_connected():
+            await self.client.disconnect() #Only when an event stops executing - then safely disconnect for memory purposes
+            print("Disconnected...")
