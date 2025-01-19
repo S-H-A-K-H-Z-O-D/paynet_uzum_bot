@@ -15,7 +15,7 @@ def main():
 
     # Run user bot handler loop asynchronously. Telethon requires event handling, asyncio loop handles everything.
     async def start_bot():
-        await reader_bot.run() #Call run not handle_messages. The logic already exists with loop via `run()`  that was defined internally
+        await reader_bot.run()
     
     asyncio.run(start_bot()) #Execute loop.
 

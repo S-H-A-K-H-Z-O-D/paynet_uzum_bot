@@ -76,10 +76,10 @@ class Sheet:
             data.get("last_name", ""),            # Familiyasi
             data.get("middle_name", ""),          # Sharifi
             data.get("contract_number", ""),      # Shartnoma raqami
-            data.get("pnfl", ""),                 # PINFL
+            data.get("passport_issue", ""),                 # PINFL
             data.get("payment", ""),              # To'lov summasi
             data.get("payment_app", ""),          # To'lov ilovasi
-            data.get("Дата", ""),                 # Sanasi
+            data.get("date", ""),                 # Sanasi
         ]
 
         # Append the row to the sheet

@@ -68,8 +68,7 @@ from google.oauth2.service_account import Credentials
 
 from dotenv import load_dotenv
 from sheet import Sheet
-from .paynet import Paynet
-from .uzum import Uzum
+from .text_to_json import TextToJson
 
 
 load_dotenv(dotenv_path=".env")
@@ -100,19 +99,6 @@ class ReaderBot:
          except ValueError as e:
            print(f"Failed to convert INFORMER_BOT_ID to int: {e}")
 
-    async def format_message_to_normal_dict(self, text):
-         """Converts incoming string into a dict compatible with payment parser"""
-
-         data = None
-         if "Клиент" in text and "Сумма транзакции:" in text:
-            data = Paynet(text).paynet_data()
-
-         elif "✅Статус:" in text:
-            data = Uzum(text).uzum_data()
-
-
-         return data #Either a formatted object or None
-
 
     async def handle_message(self, event):
             """ Process message and write to google sheets """
@@ -120,13 +106,15 @@ class ReaderBot:
             
             if  message.from_id and message.from_id.user_id == self.informer_bot_id:
 
-                 formatted_payment_data = await self.format_message_to_normal_dict(message.message)
-
+                 formatted_payment_data = TextToJson(message.message).check()
+                 
                  if formatted_payment_data is not None:
-
+                    
                     print(f"Processing message from user: {message.from_id.user_id}, Data: {formatted_payment_data}")
                     Sheet().write_to_google_sheet(formatted_payment_data)
                     print("Payment data written to Google Sheets.")
+
+                    
     async def run(self):
         """ Fetch messages and process payment notifications """
         try:

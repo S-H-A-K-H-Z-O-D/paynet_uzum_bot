@@ -1,0 +1,12 @@
+{
+    "payment": 500,
+    "transaction_number": 18038873419,
+    "date": "19.01.2025 15:11:19",
+    "last_name": "Testov",
+    "first_name": "Test",
+    "middle_name": "Test o'g'li",
+    "contract_number": 234,
+    "passport_issue": 12345678912345,
+    "course": null,
+    "payment_app": "paynet"
+}
