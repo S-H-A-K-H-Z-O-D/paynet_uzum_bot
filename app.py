@@ -1,12 +1,8 @@
-import os
 import asyncio
-from dotenv import load_dotenv
 from telegramm import ReaderBot
 
 
 def main():
-    # Load environment variables from .env file
-    load_dotenv(dotenv_path=".env")
   
     # Initialize ReaderBot - User Bot handling messages
     reader_bot = ReaderBot()
